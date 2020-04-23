@@ -26,7 +26,9 @@ if "data" in resp_apis_json:
       print("  Creating service with data: {}".format(data_service))
       resp_service = requests.post("{}/services/".format(kong_url), data_service)
       resp_service_json = resp_service.json()
-  
+
+      if not "uris" in api:
+        api["uris"] = ['/']
       data_route = {"paths": api["uris"], "preserve_host": api["preserve_host"], "service": {"id": resp_service_json["id"]}}
       if "methods" in api:
         data_route['methods'] = api["methods"]
@@ -39,7 +41,10 @@ if "data" in resp_apis_json:
 
       print("  Creating route with data: {}".format(data_route))
       resp_route = requests.post("{}/routes/".format(kong_url), json=data_route)
-  
+      resp_route_json = resp_route.json()
+
+      print("update ratelimiting_metrics set service_id = '{}', route_id = '{}' where api_id = '{}'; ".format(resp_service_json["id"], resp_route_json["id"], api["id"]))
+
       resp_plugins = requests.get("{}/plugins/?api_id={}".format(kong_url, api["id"]))
       resp_plugins_json = resp_plugins.json()
       if "data" in resp_plugins_json:
@@ -47,13 +52,15 @@ if "data" in resp_apis_json:
           data_plugin = {"name": plugin["name"], "id": plugin["id"], "created_at": plugin["created_at"], "enabled": plugin["enabled"], "service_id": resp_service_json["id"], "config": plugin["config"]}
           print("    Migrating plugin with name: {}".format(plugin["name"]))
           resp_plugin = requests.put("{}/plugins/".format(kong_url), json=data_plugin)
-  
+
       print("  Deleting API: {}".format(api["name"]))
       requests.delete("{}/apis/{}".format(kong_url, api["name"]))
   else:
     print("Running migrations: False")
     for api in resp_apis_json["data"]:
       data_service = {'name': api["name"], 'url': api["upstream_url"], 'retries': api["retries"], 'connect_timeout': api["upstream_connect_timeout"], 'write_timeout': api["upstream_send_timeout"], 'read_timeout': api["upstream_read_timeout"]}
+      if not "uris" in api:
+        api["uris"] = ['/']
       data_route = {"paths": api["uris"], "preserve_host": api["preserve_host"]}
       if "methods" in api:
         data_route['methods'] = api["methods"]
