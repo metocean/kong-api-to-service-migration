@@ -29,7 +29,7 @@ if "data" in resp_apis_json:
 
       if not "uris" in api:
         api["uris"] = ['/']
-      data_route = {'name': api["name"], "paths": api["uris"], "preserve_host": api["preserve_host"], "service": {"id": resp_service_json["id"]}}
+      data_route = {"paths": api["uris"], "preserve_host": api["preserve_host"], "service": {"id": resp_service_json["id"]}}
       if "methods" in api:
         data_route['methods'] = api["methods"]
       if "hosts" in api:
